@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "140295569789",
+    "project_id": "power-b4433",
+    "storage_bucket": "power-b4433.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:140295569789:android:59d0cff24ff99d43418c14",
+        "android_client_info": {
+          "package_name": "com.example.power"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3P44t1yZXQ0zPXSbE2dJsV0Xnu3D34qg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
