@@ -83,42 +83,26 @@ class AuthService {
   }
 
   Future<User?> signInWithIdentifier(String identifier, String password) async {
-    String? email;
+    String email;
 
     if (identifier.contains('@')) {
-      email = identifier;
+      email = identifier.trim();
     } else {
-      try {
-        final querySnapshot = await _firestore
-            .collection('users')
-            .where('username', isEqualTo: identifier)
-            .limit(1)
-            .get();
-        if (querySnapshot.docs.isEmpty) {
-          email = querySnapshot.docs.first.data()['email'] as String?;
-        }
-      } catch (e) {
-        print('Error fetching user by username: $e');
-        return null;
-      }
+      // lookup email by username
+      final fetchedEmail = await DatabaseService().getEmailByUsername(
+        identifier.trim(),
+      );
+      if (fetchedEmail == null || fetchedEmail.isEmpty) return null;
+      email = fetchedEmail;
     }
-
-    if (email == null) {
-      print('Cannot find user by this username or email');
-      return null;
-    }
-
     try {
-      UserCredential result = await _auth.signInWithEmailAndPassword(
+      final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      return result.user;
-    } on FirebaseAuthException catch (e) {
-      print('Firebase Auth Error: ${e.message}');
-      return null;
+      return cred.user;
     } catch (e) {
-      print(e.toString());
+      print('Error signing in: $e');
       return null;
     }
   }
