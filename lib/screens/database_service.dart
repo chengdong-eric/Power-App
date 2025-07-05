@@ -9,6 +9,9 @@ class DatabaseService {
   final CollectionReference userCollection = FirebaseFirestore.instance
       .collection('users');
 
+  final CollectionReference usernameCollection = FirebaseFirestore.instance
+      .collection('usernames');
+
   Stream<bool> isBillInWatchlist(String billId) {
     if (uid == null) return Stream.value(false);
     return userCollection.doc(uid).snapshots().map((snapshot) {
@@ -45,27 +48,31 @@ class DatabaseService {
     }
   }
 
+  Stream<List<String>> get watchlistStream {
+    if (uid == null) return Stream.value([]);
+
+    return userCollection.doc(uid).snapshots().map((snapshot) {
+      if (!snapshot.exists) return [];
+
+      final data = snapshot.data() as Map<String, dynamic>;
+
+      final List<dynamic> watchlistData = data['watchlist'] ?? [];
+
+      return List<String>.from(watchlistData.map((item) => item.toString()));
+    });
+  }
+
   Future<String?> getEmailByUsername(String username) async {
-    final testUsername = 'cheng123';
-    print('--- Running test query for username: $testUsername ---');
-
     try {
-      final querySnapshot = await userCollection
-          .where('username', isEqualTo: testUsername)
-          .limit(1)
-          .get();
-
-      print(
-        "--- Query finished. Found ${querySnapshot.docs.length} documents. ---",
-      );
-
-      if (querySnapshot.docs.isEmpty) {
-        print("Query returned 0 documents for username: $testUsername");
+      final trimmedUsername = username.toLowerCase().trim();
+      if (trimmedUsername.isEmpty) {
         return null;
       }
-
-      final userData = querySnapshot.docs.first.data() as Map<String, dynamic>;
-      return userData['email'] as String?;
+      final doc = await _firestore
+          .collection('usernames')
+          .doc(trimmedUsername)
+          .get();
+      return doc.data()?['email'] as String?;
     } catch (e) {
       print('Error fetching email by username: $e');
       return null;
@@ -73,11 +80,18 @@ class DatabaseService {
   }
 
   Future<bool> isUsernameTaken(String username) async {
-    final querySnapshot = await userCollection
-        .where('username', isEqualTo: username.toLowerCase().trim())
-        .limit(1)
-        .get();
-    return querySnapshot.docs.isNotEmpty;
+    try {
+      final trimmedUsername = username.toLowerCase().trim();
+      if (trimmedUsername.isEmpty) {
+        return true;
+      }
+      final doc = await usernameCollection.doc(trimmedUsername).get();
+      print(doc.exists);
+      return doc.exists;
+    } catch (e) {
+      print('Error checking if username is taken: $e');
+      return true;
+    }
   }
 
   Future<void> createUserDocument({
@@ -85,11 +99,15 @@ class DatabaseService {
     required String email,
     required String username,
   }) async {
-    return await userCollection.doc(uid).set({
-      'username': username,
+    await _firestore.collection('users').doc(uid).set({
       'email': email,
-      'created_at': Timestamp.now(),
-      'watchlist': [],
+      'username': username,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    return await _firestore.collection('usernames').doc(username).set({
+      'email': email,
+      'uid': uid,
     });
   }
 }
